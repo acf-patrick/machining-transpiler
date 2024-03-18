@@ -1,4 +1,4 @@
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Variant {
     Int(i32),
     Float(f32),
@@ -16,6 +16,8 @@ impl From<&str> for Variant {
             Variant::Int(integer)
         } else if let Ok(float) = value.parse::<f32>() {
             Variant::Float(float)
+        } else if value.is_empty() {
+            Variant::Null
         } else {
             Variant::String(value.trim_matches('"').to_owned())
         }
