@@ -28,6 +28,16 @@ impl Exporter {
             .collect()
     }
 
+    pub fn support(&self, vendor: &str) -> bool {
+        for recorded_vendor in self.exporters.keys() {
+            if vendor.to_lowercase() == recorded_vendor.to_lowercase() {
+                return true;
+            }
+        }
+
+        false
+    }
+
     fn get_key(&self, vendor: &str) -> Option<String> {
         for key in self.exporters.keys() {
             if key.to_lowercase() == vendor.to_lowercase() {
@@ -46,7 +56,7 @@ impl Exporter {
     ) -> Result<()> {
         let record_key = self.get_key(vendor);
         if record_key.is_none() {
-            return Err(anyhow!("No exporter implemented for provider : {vendor}"));
+            return Err(anyhow!("No exporter implemented for provider `{vendor}`"));
         }
 
         let exporter = self.exporters.get(&record_key.unwrap()).unwrap();
@@ -56,5 +66,4 @@ impl Exporter {
 }
 
 #[cfg(test)]
-mod tests {
-}
+mod tests {}
