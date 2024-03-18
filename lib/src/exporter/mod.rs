@@ -1,3 +1,4 @@
+use anyhow::{anyhow, Result};
 use std::collections::HashMap;
 
 use crate::Export;
@@ -19,4 +20,41 @@ impl Exporter {
 
         Exporter { exporters }
     }
+
+    pub fn vendors(&self) -> Vec<String> {
+        self.exporters
+            .keys()
+            .map(|vendor| vendor.to_owned())
+            .collect()
+    }
+
+    fn get_key(&self, vendor: &str) -> Option<String> {
+        for key in self.exporters.keys() {
+            if key.to_lowercase() == vendor.to_lowercase() {
+                return Some(key.to_owned());
+            }
+        }
+
+        None
+    }
+
+    pub fn export(
+        &self,
+        project_uuid: &str,
+        vendor: &str,
+        output_path: Option<String>,
+    ) -> Result<()> {
+        let record_key = self.get_key(vendor);
+        if record_key.is_none() {
+            return Err(anyhow!("No exporter implemented for provider : {vendor}"));
+        }
+
+        let exporter = self.exporters.get(&record_key.unwrap()).unwrap();
+
+        exporter.export(project_uuid, output_path)
+    }
+}
+
+#[cfg(test)]
+mod tests {
 }

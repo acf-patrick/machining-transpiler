@@ -1,5 +1,6 @@
 use anyhow::Result;
 use clap::{Parser, Subcommand};
+use dotenvy::dotenv;
 
 #[derive(Parser)]
 struct Cli {
