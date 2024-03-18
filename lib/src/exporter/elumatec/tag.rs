@@ -1,4 +1,5 @@
 use super::variant::Variant;
+use human_sort::sort;
 use std::collections::HashMap;
 
 pub struct Tag {
@@ -6,6 +7,7 @@ pub struct Tag {
     attributes: HashMap<String, Variant>,
 }
 
+#[allow(dead_code)]
 impl Tag {
     pub fn new(tag_name: &str) -> Self {
         Tag {
@@ -20,6 +22,26 @@ impl Tag {
 
     pub fn set(&mut self, attr: &str, value: Variant) {
         self.attributes.insert(attr.to_owned(), value);
+    }
+
+    pub fn to_string(&self) -> String {
+        let mut serialized = format!(":{}\n", self.name);
+
+        let mut keys = self
+            .attributes
+            .keys()
+            .map(|key| key.as_str())
+            .collect::<Vec<_>>();
+        let mut keys = keys.as_mut_slice();
+        sort(&mut keys);
+
+        for key in keys {
+            let value = self.get(key).unwrap();
+            serialized += &format!("{key}\t=\t{value}\n");
+        }
+        serialized += "\n";
+
+        serialized
     }
 
     pub fn update_attributes(&mut self, line: &str) -> Option<(String, Variant)> {
@@ -105,6 +127,19 @@ mod tests {
         assert_eq!(
             tag.update_attributes("Null = // null attribute"),
             Some(("Null".to_owned(), Variant::Null))
+        );
+    }
+
+    #[test]
+    fn serialize() {
+        let mut tag = Tag::new("TAG");
+        tag.set("Int", Variant::Int(0));
+        tag.set("Float", Variant::Float(0.1));
+        tag.update_attributes("String = string");
+
+        assert_eq!(
+            tag.to_string(),
+            ":TAG\nFloat\t=\t0.1\nInt\t=\t0\nString\t=\t\"string\"\n\n"
         );
     }
 }

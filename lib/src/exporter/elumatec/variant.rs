@@ -1,9 +1,28 @@
+use std::fmt::Display;
+
 #[derive(Debug, Clone, PartialEq)]
 pub enum Variant {
     Int(i32),
     Float(f32),
     String(String),
     Null,
+}
+
+impl Variant {
+    pub fn to_string(&self) -> String {
+        match self {
+            Self::Int(int) => format!("{int}"),
+            Self::Float(float) => format!("{float}"),
+            Self::String(string) => format!("\"{string}\""),
+            Self::Null => String::new(),
+        }
+    }
+}
+
+impl Display for Variant {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.to_string())
+    }
 }
 
 impl From<&str> for Variant {
@@ -44,5 +63,16 @@ mod tests {
     fn parse_string() {
         let value = Variant::from("\"This is a string\"");
         assert_eq!(value, Variant::String("This is a string".to_owned()));
+    }
+
+    #[test]
+    fn serialize() {
+        assert_eq!(Variant::Int(0).to_string(), "0".to_owned());
+        assert_eq!(Variant::Float(0.5).to_string(), "0.5".to_owned());
+        assert_eq!(
+            Variant::String("string".to_owned()).to_string(),
+            "\"string\"".to_owned()
+        );
+        assert_eq!(Variant::Null.to_string(), String::new());
     }
 }
