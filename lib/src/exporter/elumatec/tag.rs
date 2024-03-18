@@ -2,8 +2,9 @@ use super::variant::Variant;
 use human_sort::sort;
 use std::collections::HashMap;
 
+#[derive(Clone)]
 pub struct Tag {
-    name: String,
+    pub name: String,
     attributes: HashMap<String, Variant>,
 }
 
@@ -22,6 +23,10 @@ impl Tag {
 
     pub fn set(&mut self, attr: &str, value: Variant) {
         self.attributes.insert(attr.to_owned(), value);
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.attributes.is_empty()
     }
 
     pub fn to_string(&self) -> String {
