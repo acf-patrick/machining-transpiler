@@ -1,5 +1,8 @@
 use crate::Export;
 
+mod variant;
+mod tag;
+
 pub struct ElumatecExporter;
 
 impl ElumatecExporter {
