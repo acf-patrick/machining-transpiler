@@ -14,7 +14,7 @@ pub struct ElumatecExporter {
 impl ElumatecExporter {
     pub fn new() -> Self {
         match Self::from_template() {
-            Ok(exporter) => exporter,
+            Ok(exporter) => exporter.update_from_api(),
 
             Err(err) => {
                 eprintln!("Unable to read template file : \n{}", err.to_string());
@@ -25,6 +25,16 @@ impl ElumatecExporter {
 
     fn update_from_api(mut self) -> Self {
         todo!()
+    }
+
+    fn to_string(&self) -> String {
+        let mut serialized = String::new();
+
+        for tag in &self.tags {
+            serialized += &tag.to_string();
+        }
+
+        serialized
     }
 
     fn from_template() -> Result<Self> {
@@ -96,6 +106,26 @@ mod tests {
     use tests::variant::Variant;
 
     use super::*;
+
+    #[test]
+    fn serialize() {
+        let exporter = ElumatecExporter::read_template(
+            r#"
+            :TAG // mock tag
+    // line comment
+            Int = 0
+            Float = 0.0
+            String = "string"
+            V1 = 0
+            V10 = 1
+            V2= 2
+        "#,
+        )
+        .unwrap();
+
+        let serialized = exporter.to_string();
+        assert_eq!(serialized, ":TAG\nFloat\t=\t0\nInt\t=\t0\nString\t=\t\"string\"\nV1\t=\t0\nV2\t=\t2\nV10\t=\t1\n\n");
+    }
 
     #[test]
     fn parse_string() {
