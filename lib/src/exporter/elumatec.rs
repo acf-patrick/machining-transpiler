@@ -1,12 +1,18 @@
-use std::{fs::File, io::Read, path::Path};
+use std::{
+    fs::{self, File},
+    io::Read,
+    path::Path,
+};
 
-use self::tag::Tag;
+use self::{tag::Tag, variant::Variant};
 use crate::Export;
 use anyhow::{anyhow, Result};
+use reqwest::{blocking::Client, Url};
 
 mod tag;
 mod variant;
 
+#[derive(Clone)]
 pub struct ElumatecExporter {
     tags: Vec<Tag>,
 }
@@ -14,7 +20,7 @@ pub struct ElumatecExporter {
 impl ElumatecExporter {
     pub fn new() -> Self {
         match Self::from_template() {
-            Ok(exporter) => exporter.update_from_api(),
+            Ok(exporter) => exporter,
 
             Err(err) => {
                 eprintln!("Unable to read template file : \n{}", err.to_string());
@@ -23,8 +29,120 @@ impl ElumatecExporter {
         }
     }
 
-    fn update_from_api(mut self) -> Self {
-        todo!()
+    fn has_tag(&self, tag_name: &str) -> bool {
+        for tag in &self.tags {
+            if tag.name == tag_name {
+                return true;
+            }
+        }
+
+        false
+    }
+
+    fn set_attribute(&mut self, tag_name: &str, attr: &str, value: Variant) {
+        if !self.has_tag(tag_name) {
+            self.tags.push(Tag::new(tag_name));
+        }
+
+        for tag in &mut self.tags {
+            if tag.name == tag_name {
+                tag.set(attr, value);
+                return;
+            }
+        }
+    }
+
+    fn update_macros(&mut self, project_uuid: &str) -> Result<()> {
+        let base_url = std::env::var("BASE_URL")?;
+        let url =
+            Url::parse(&base_url)?.join("/documentData/search/findProjectDataByProjectUuid")?;
+
+        let res = Client::new()
+            .get(url)
+            .query(&[("projectUuid", project_uuid)])
+            .send()?;
+        let data = res.json::<serde_json::Value>()?;
+
+        let structure_views = &data["structureViews"];
+        if structure_views.is_null() {
+            return Err(anyhow!("Unable to update macros, `structureViews` is null"));
+        }
+
+        let structure_views = structure_views.as_array().unwrap();
+        for structure_view in structure_views {
+            let nomenclature = &structure_view["nomenclature"];
+            if nomenclature.is_null() {
+                continue;
+            }
+
+            let profiles = &nomenclature["profiles"];
+            if profiles.is_null() {
+                continue;
+            }
+
+            let profiles = profiles.as_array().unwrap();
+            for profile in profiles {
+                let element = &profile["element"];
+                if element.is_null() {
+                    continue;
+                }
+
+                let machinings = &element["machinings"];
+                if machinings.is_null() {
+                    continue;
+                }
+
+                let machinings = machinings.as_array().unwrap();
+                for machining in machinings {
+                    let operations = &machining["operations"];
+                    if operations.is_null() {
+                        continue;
+                    }
+
+                    let operations = operations.as_array().unwrap();
+                    for operation in operations {
+                        let params = &operation["params"];
+                        if params.is_null() {
+                            continue;
+                        }
+
+                        let params = params.as_object().unwrap();
+                        let mut var_set = false;
+
+                        for (key, value) in params {
+                            if key.as_bytes()[0] != b'v' {
+                                continue;
+                            }
+
+                            var_set = true;
+
+                            let var_index = (&key[1..]).parse::<u16>()?;
+                            self.set_attribute(
+                                "JOB",
+                                &format!("Var{}", var_index - 1),
+                                Variant::from(value.as_str().unwrap()),
+                            );
+                        }
+
+                        if var_set {
+                            return Ok(());
+                        }
+                    }
+                }
+            }
+        }
+
+        Err(anyhow!("Unable to update macros : no machinings set"))
+    }
+
+    fn update_from_api(&mut self, project_uuid: &str) -> Result<()> {
+        if let Err(err) = self.update_macros(project_uuid) {
+            eprintln!("{}", err.to_string());
+        }
+
+        // other substitutions that should be made
+
+        Ok(())
     }
 
     fn to_string(&self) -> String {
@@ -75,7 +193,8 @@ impl ElumatecExporter {
             } else if let Some(tag) = &mut curr_tag {
                 if tag.update_attributes(line).is_none() {
                     return Err(anyhow!(
-                        "{line}\n^ Invalid syntax on line {line_index} : unable to read template file"
+                        "{line}\n^ Invalid syntax on line {} : unable to read template file",
+                        line_index + 1
                     ));
                 }
             }
@@ -96,8 +215,18 @@ impl Default for ElumatecExporter {
 }
 
 impl Export for ElumatecExporter {
-    fn export(&self, project_uuid: &str, output_path: Option<String>) -> anyhow::Result<()> {
-        todo!()
+    fn export(&self, project_uuid: &str, output_path: Option<String>) -> Result<()> {
+        let mut exporter = self.clone();
+        exporter.update_from_api(project_uuid)?;
+
+        let serialized = exporter.to_string();
+        if let Some(output_path) = output_path {
+            fs::write(output_path, serialized)?;
+        } else {
+            println!("{serialized}");
+        }
+
+        Ok(())
     }
 }
 
@@ -109,20 +238,17 @@ mod tests {
 
     #[test]
     fn serialize() {
-        let exporter = ElumatecExporter::read_template(
-            r#"
-            :TAG // mock tag
-    // line comment
-            Int = 0
-            Float = 0.0
-            String = "string"
-            V1 = 0
-            V10 = 1
-            V2= 2
-        "#,
-        )
-        .unwrap();
+        let mut exporter = ElumatecExporter::default();
+        let mut tag = Tag::new("TAG");
 
+        tag.set("Int", Variant::Int(0));
+        tag.set("Float", Variant::Float(0.0));
+        tag.set("String", Variant::String("string".to_owned()));
+        tag.set("V1", Variant::Int(0));
+        tag.set("V10", Variant::Int(1));
+        tag.set("V2", Variant::Int(2));
+
+        exporter.tags.push(tag);
         let serialized = exporter.to_string();
         assert_eq!(serialized, ":TAG\nFloat\t=\t0\nInt\t=\t0\nString\t=\t\"string\"\nV1\t=\t0\nV2\t=\t2\nV10\t=\t1\n\n");
     }

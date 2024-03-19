@@ -10,7 +10,7 @@ pub enum ProjectInfo {
 pub fn get_project_uuid(project_info: ProjectInfo) -> Option<String> {
     let base_url = Url::parse(&std::env::var("BASE_URL").expect("BASE_URL is not set"))
         .expect("Invalid URL provided as BASE_URL");
-    println!("BASE_URL : {}", base_url.to_string());
+    println!("Cover API : {}", base_url.to_string());
     let client = Client::new();
 
     match project_info {

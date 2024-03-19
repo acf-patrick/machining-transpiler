@@ -29,13 +29,7 @@ impl Exporter {
     }
 
     pub fn support(&self, vendor: &str) -> bool {
-        for recorded_vendor in self.exporters.keys() {
-            if vendor.to_lowercase() == recorded_vendor.to_lowercase() {
-                return true;
-            }
-        }
-
-        false
+        self.get_key(vendor).is_some()
     }
 
     fn get_key(&self, vendor: &str) -> Option<String> {
