@@ -279,17 +279,6 @@ mod tests {
     }
 
     #[test]
-    fn should_fail_with_invalid_line() {
-        let res = ElumatecExporter::read_template(
-            r#"
-        :TAG
-        Test == 5
-        "#,
-        );
-        assert!(res.is_err());
-    }
-
-    #[test]
     fn parse_empty_tag() {
         let res = ElumatecExporter::read_template(":TAG");
         assert!(res.is_ok());

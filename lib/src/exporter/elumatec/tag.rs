@@ -59,12 +59,12 @@ impl Tag {
         }
 
         let parts = left.split("=").collect::<Vec<_>>();
-        if parts.len() != 2 {
+        if parts.len() < 2 {
             return None;
         }
 
         let key = parts[0].trim();
-        let value = Variant::from(parts[1].trim());
+        let value = Variant::from(parts.as_slice()[1..].join("=").trim());
 
         self.set(key, value.clone());
 
@@ -123,6 +123,15 @@ mod tests {
                 "String".to_owned(),
                 Variant::String("Some string".to_owned())
             ))
+        );
+    }
+
+    #[test]
+    fn parse_string_with_assignement_value() {
+        let mut tag = Tag::new("tag");
+        assert_eq!(
+            tag.update_attributes("Field = \"Key=value\""),
+            Some(("Field".to_owned(), Variant::String("Key=value".to_owned())))
         );
     }
 

@@ -41,10 +41,7 @@ enum Commands {
 fn main() -> Result<()> {
     dotenv().expect("Unable to load environnement variables, .env file not found");
 
-    let mut cli = Cli::parse();
-    cli.project_name = Some("import".to_owned());
-    cli.vendor = Some("elumatec".to_owned());
-
+    let cli = Cli::parse();
     let exporter = Exporter::new();
 
     if let Some(command) = cli.command {
