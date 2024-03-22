@@ -1,7 +1,7 @@
 use anyhow::{anyhow, Result};
 use std::collections::HashMap;
 
-use crate::Export;
+use crate::{util::find_files_with_extension, Export, Source};
 
 mod elumatec;
 
@@ -42,12 +42,24 @@ impl Exporter {
         None
     }
 
-    pub fn export(
-        &self,
-        project_uuid: &str,
-        vendor: &str,
-        output_path: Option<String>,
-    ) -> Result<()> {
+    pub fn transpile_folder(&self, folder: &str, vendor: &str) -> Result<()> {
+        let files = find_files_with_extension(folder, "json")?;
+        for file in files {
+            let path = std::path::Path::new(&file);
+
+            self.export(
+                Source::File(file.clone()),
+                vendor,
+                path.with_extension("ncw")
+                    .to_str()
+                    .map(|path| path.to_owned()),
+            )?;
+        }
+
+        todo!()
+    }
+
+    pub fn export(&self, source: Source, vendor: &str, output_path: Option<String>) -> Result<()> {
         let record_key = self.get_key(vendor);
         if record_key.is_none() {
             return Err(anyhow!("No exporter implemented for provider `{vendor}`"));
@@ -55,9 +67,6 @@ impl Exporter {
 
         let exporter = self.exporters.get(&record_key.unwrap()).unwrap();
 
-        exporter.export(project_uuid, output_path)
+        exporter.export(source, output_path)
     }
 }
-
-#[cfg(test)]
-mod tests {}

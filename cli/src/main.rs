@@ -3,10 +3,14 @@ use clap::{Parser, Subcommand};
 use dotenvy::dotenv;
 use lib::{
     util::{get_project_uuid, ProjectInfo},
-    Exporter,
+    Exporter, Source,
 };
 
 #[derive(Parser)]
+#[command(about = r#"
+Transpiles Cover Datas to machine files.
+By default, the CLI uses API data but file/folder can be used with the `transpile` subcommand.
+"#)]
 struct Cli {
     /// Name of the project to export
     #[arg(short = 'n', long)]
@@ -32,10 +36,19 @@ struct Cli {
     command: Option<Commands>,
 }
 
-#[derive(Subcommand)]
+#[derive(Subcommand, PartialEq)]
 enum Commands {
     /// List implemented providers
     Vendors,
+
+    /// Transpile JSON file or entire folder.
+    Transpile {
+        #[arg(short, long, default_value = "false")]
+        /// Recursive mode. Read JSON files within folder.
+        recursive: bool,
+
+        source: String,
+    },
 }
 
 fn main() -> Result<()> {
@@ -44,15 +57,11 @@ fn main() -> Result<()> {
     let cli = Cli::parse();
     let exporter = Exporter::new();
 
-    if let Some(command) = cli.command {
-        match command {
-            Commands::Vendors => {
-                let vendors = exporter.vendors();
-                println!("Impemented providers : ");
-                for vendor in vendors {
-                    println!("- {vendor}");
-                }
-            }
+    if cli.command == Some(Commands::Vendors) {
+        let vendors = exporter.vendors();
+        println!("Impemented providers : ");
+        for vendor in vendors {
+            println!("- {vendor}");
         }
 
         return Ok(());
@@ -67,6 +76,16 @@ fn main() -> Result<()> {
     let vendor = cli.vendor.unwrap();
     if !exporter.support(&vendor) {
         return Err(anyhow!("No exporter implemented for provider `{vendor}`\n Use `vendors` subcommand to list implemented providers."));
+    }
+
+    if let Some(Commands::Transpile { recursive, source }) = cli.command {
+        if recursive {
+            exporter.transpile_folder(&source, &vendor)?;
+        } else {
+            exporter.export(Source::File(source), &vendor, cli.output)?;
+        }
+
+        return Ok(());
     }
 
     // Check project existence
@@ -88,7 +107,7 @@ fn main() -> Result<()> {
 
     if let Some(project_uuid) = project_uuid {
         println!("Using project {project_uuid}\n");
-        exporter.export(&project_uuid, &vendor, cli.output)?;
+        exporter.export(Source::Api { project_uuid }, &vendor, cli.output)?;
 
         Ok(())
     } else {

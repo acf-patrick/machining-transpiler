@@ -5,7 +5,7 @@ use std::{
 };
 
 use self::{tag::Tag, variant::Variant};
-use crate::Export;
+use crate::{Export, Source};
 use anyhow::{anyhow, Result};
 use reqwest::{blocking::Client, Url};
 
@@ -145,6 +145,10 @@ impl ElumatecExporter {
         Ok(())
     }
 
+    fn update_from_file(&mut self, file: &str) -> Result<()> {
+        todo!()
+    }
+
     fn to_string(&self) -> String {
         let mut serialized = String::new();
 
@@ -215,9 +219,18 @@ impl Default for ElumatecExporter {
 }
 
 impl Export for ElumatecExporter {
-    fn export(&self, project_uuid: &str, output_path: Option<String>) -> Result<()> {
+    fn export(&self, source: Source, output_path: Option<String>) -> Result<()> {
         let mut exporter = self.clone();
-        exporter.update_from_api(project_uuid)?;
+
+        match source {
+            Source::Api { project_uuid } => {
+                exporter.update_from_api(&project_uuid)?;
+            }
+
+            Source::File(path) => {
+                exporter.update_from_file(&path)?;
+            }
+        }
 
         let serialized = exporter.to_string();
         if let Some(output_path) = output_path {
