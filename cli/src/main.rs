@@ -41,7 +41,7 @@ enum Commands {
 
         /// Name of the provider (Elumatec, ...)
         #[arg(short, long)]
-        vendor: Option<String>,
+        vendor: String,
     },
 
     /// Transpile JSON file or entire folder.
@@ -52,26 +52,19 @@ enum Commands {
 
         /// Name of the provider (Elumatec, ...)
         #[arg(short, long)]
-        vendor: Option<String>,
+        vendor: String,
 
         source: String,
     },
 }
 
 trait CheckVendor {
-    fn check_vendor(&self, vendor: Option<String>) -> Result<()>;
+    fn check_vendor(&self, vendor: &str) -> Result<()>;
 }
 
 impl CheckVendor for Exporter {
-    fn check_vendor(&self, vendor: Option<String>) -> Result<()> {
-        if vendor.is_none() {
-            return Err(anyhow!(
-                "You have to provider a provider to use. Use -v or --vendor argument"
-            ));
-        }
-
-        let vendor = vendor.unwrap();
-        if !self.support(&vendor) {
+    fn check_vendor(&self, vendor: &str) -> Result<()> {
+        if !self.support(vendor) {
             return Err(anyhow!("No exporter implemented for provider `{vendor}`\n Use `vendors` subcommand to list implemented providers."));
         }
 
@@ -83,6 +76,14 @@ fn main() -> Result<()> {
     dotenv().expect("Unable to load environnement variables, .env file not found");
 
     let cli = Cli::parse();
+    // let cli = Cli {
+    //     command: Commands::FromFile {
+    //         recursive: true,
+    //         vendor: "elumatec".to_owned(),
+    //         source: r#"C:\Users\mihar\projects\machining-transpiler\projects"#.to_owned(),
+    //     },
+    //     output: None,
+    // };
     let exporter = Exporter::new();
 
     match cli.command {
@@ -92,7 +93,7 @@ fn main() -> Result<()> {
             project_id,
             vendor,
         } => {
-            exporter.check_vendor(vendor.clone())?;
+            exporter.check_vendor(&vendor)?;
 
             // Check project existence
 
@@ -113,7 +114,7 @@ fn main() -> Result<()> {
 
             if let Some(project_uuid) = project_uuid {
                 println!("Using project {project_uuid}\n");
-                exporter.export(Source::Api { project_uuid }, &vendor.unwrap(), cli.output)?;
+                exporter.export(Source::Api { project_uuid }, &vendor, cli.output)?;
             } else {
                 return Err(anyhow!("Project not found"));
             }
@@ -124,9 +125,8 @@ fn main() -> Result<()> {
             vendor,
             source,
         } => {
-            exporter.check_vendor(vendor.clone())?;
+            exporter.check_vendor(&vendor)?;
 
-            let vendor = vendor.unwrap();
             if recursive {
                 exporter.transpile_folder(&source, &vendor)?;
             } else {

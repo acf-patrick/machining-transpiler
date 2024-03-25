@@ -1,4 +1,4 @@
-use std::fs;
+use std::{fs, path::Path};
 
 use anyhow::Result;
 use reqwest::{blocking::Client, Url};
@@ -65,7 +65,10 @@ pub fn find_files_with_extension(folder: &str, extension: &str) -> Result<Vec<St
     for entry in entries {
         let path = entry?.path();
         if path.is_dir() {
-            files.extend(find_files_with_extension(folder, extension)?);
+            files.extend(find_files_with_extension(
+                path.to_str().unwrap(),
+                extension,
+            )?);
         } else if let Some(ext) = path.extension() {
             if ext == extension {
                 files.push(path.to_str().unwrap().to_owned());

@@ -1,5 +1,5 @@
 use anyhow::{anyhow, Result};
-use std::collections::HashMap;
+use std::{collections::HashMap, path::Path};
 
 use crate::{util::find_files_with_extension, Export, Source};
 
@@ -43,9 +43,18 @@ impl Exporter {
     }
 
     pub fn transpile_folder(&self, folder: &str, vendor: &str) -> Result<()> {
+        let path = Path::new(folder);
+        if !path.is_dir() {
+            return Err(anyhow!("Source must be a directory."));
+        }
+
         let files = find_files_with_extension(folder, "json")?;
         for file in files {
             let path = std::path::Path::new(&file);
+            println!(
+                "Transpiling {}",
+                path.file_name().unwrap().to_str().unwrap()
+            );
 
             self.export(
                 Source::File(file.clone()),

@@ -280,6 +280,13 @@ impl Default for ElumatecExporter {
 
 impl Export for ElumatecExporter {
     fn export(&self, source: Source, output_path: Option<String>) -> Result<()> {
+        if let Source::File(file) = &source {
+            let path = Path::new(file);
+            if !path.is_file() {
+                return Err(anyhow!("Source must be a file"));
+            }
+        }
+
         let mut exporter = self.clone();
 
         match source {
