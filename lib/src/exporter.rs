@@ -56,7 +56,7 @@ impl Exporter {
             )?;
         }
 
-        todo!()
+        Ok(())
     }
 
     pub fn export(&self, source: Source, vendor: &str, output_path: Option<String>) -> Result<()> {

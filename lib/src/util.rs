@@ -59,7 +59,6 @@ pub fn get_project_uuid(project_info: ProjectInfo) -> Option<String> {
 }
 
 pub fn find_files_with_extension(folder: &str, extension: &str) -> Result<Vec<String>> {
-    let folder_path = std::path::Path::new(folder);
     let mut files = vec![];
 
     let entries = fs::read_dir(folder)?;

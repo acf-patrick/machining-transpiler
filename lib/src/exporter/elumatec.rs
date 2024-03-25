@@ -140,13 +140,73 @@ impl ElumatecExporter {
             eprintln!("{}", err.to_string());
         }
 
-        // other substitutions that should be made
+        // other substitutions that should be done
 
         Ok(())
     }
 
     fn update_from_file(&mut self, file: &str) -> Result<()> {
-        todo!()
+        let mut file = File::open(file)?;
+
+        let mut contents = String::new();
+        file.read_to_string(&mut contents)?;
+
+        let json: serde_json::Value = serde_json::from_str(&contents)?;
+
+        let mut cut_tags = vec![];
+
+        let articles = json["articles"].as_array().unwrap();
+        for article in articles {
+            match article["type"].as_str().unwrap() {
+                "profile" => {
+                    let mut cut = Tag::new("CUT");
+
+                    let cut_index = cut_tags.len() + 1;
+                    cut.set("CNo", Variant::Int(cut_index as i32));
+
+                    let length = article["length"]["value"].as_f64().unwrap();
+                    cut.set("CLength", Variant::Float(length as f32));
+
+                    let cuts = article["cuts"].as_array().unwrap();
+
+                    cut.set(
+                        "CAngleLH",
+                        Variant::Float(cuts[0]["h"]["value"].as_f64().unwrap() as f32),
+                    );
+                    cut.set(
+                        "CAngleRH",
+                        Variant::Float(cuts[1]["h"]["value"].as_f64().unwrap() as f32),
+                    );
+
+                    cut.set(
+                        "CAngleLV",
+                        Variant::Float(cuts[0]["v"]["value"].as_f64().unwrap() as f32),
+                    );
+                    cut.set(
+                        "CAngleRV",
+                        Variant::Float(cuts[1]["v"]["value"].as_f64().unwrap() as f32),
+                    );
+
+                    cut.set("CRotation", Variant::Float(0.0));
+                    cut.set("CCount", Variant::Int(1));
+                    cut.set("CSawRotation", Variant::Float(0.0));
+
+                    cut_tags.push(cut);
+                }
+
+                _ => {
+                    // à voir
+                }
+            }
+        }
+
+        let cut_count = cut_tags.len() as i32;
+        for mut tag in cut_tags {
+            tag.set("CCount", Variant::Int(cut_count));
+            self.tags.push(tag);
+        }
+
+        Ok(())
     }
 
     fn to_string(&self) -> String {
@@ -228,6 +288,7 @@ impl Export for ElumatecExporter {
             }
 
             Source::File(path) => {
+                exporter.tags.clear();
                 exporter.update_from_file(&path)?;
             }
         }
