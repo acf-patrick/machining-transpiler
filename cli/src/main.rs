@@ -12,28 +12,12 @@ Transpiles Cover Datas to machine files.
 By default, the CLI uses API data but file/folder can be used with the `transpile` subcommand.
 "#)]
 struct Cli {
-    /// Name of the project to export
-    #[arg(short = 'n', long)]
-    project_name: Option<String>,
-
-    /// UUID of the project to export
-    #[arg(short = 'u', long)]
-    project_uuid: Option<String>,
-
-    /// ID of the project to export
-    #[arg(short = 'i', long)]
-    project_id: Option<u16>,
-
-    /// Name of the provider (Elumatec, ...)
-    #[arg(short, long)]
-    vendor: Option<String>,
-
     /// Path to output file
     #[arg(short, long)]
     output: Option<String>,
 
     #[command(subcommand)]
-    command: Option<Commands>,
+    command: Commands,
 }
 
 #[derive(Subcommand, PartialEq)]
@@ -41,14 +25,58 @@ enum Commands {
     /// List implemented providers
     Vendors,
 
+    /// Fetch data from Cover API in provider format
+    FromApi {
+        /// Name of the project to export
+        #[arg(short = 'n', long)]
+        project_name: Option<String>,
+
+        /// UUID of the project to export
+        #[arg(short = 'u', long)]
+        project_uuid: Option<String>,
+
+        /// ID of the project to export
+        #[arg(short = 'i', long)]
+        project_id: Option<u16>,
+
+        /// Name of the provider (Elumatec, ...)
+        #[arg(short, long)]
+        vendor: Option<String>,
+    },
+
     /// Transpile JSON file or entire folder.
-    Transpile {
+    FromFile {
         #[arg(short, long, default_value = "false")]
         /// Recursive mode. Read JSON files within folder.
         recursive: bool,
 
+        /// Name of the provider (Elumatec, ...)
+        #[arg(short, long)]
+        vendor: Option<String>,
+
         source: String,
     },
+}
+
+trait CheckVendor {
+    fn check_vendor(&self, vendor: Option<String>) -> Result<()>;
+}
+
+impl CheckVendor for Exporter {
+    fn check_vendor(&self, vendor: Option<String>) -> Result<()> {
+        if vendor.is_none() {
+            return Err(anyhow!(
+                "You have to provider a provider to use. Use -v or --vendor argument"
+            ));
+        }
+
+        let vendor = vendor.unwrap();
+        if !self.support(&vendor) {
+            return Err(anyhow!("No exporter implemented for provider `{vendor}`\n Use `vendors` subcommand to list implemented providers."));
+        }
+
+        Ok(())
+    }
 }
 
 fn main() -> Result<()> {
@@ -57,60 +85,65 @@ fn main() -> Result<()> {
     let cli = Cli::parse();
     let exporter = Exporter::new();
 
-    if cli.command == Some(Commands::Vendors) {
-        let vendors = exporter.vendors();
-        println!("Impemented providers : ");
-        for vendor in vendors {
-            println!("- {vendor}");
+    match cli.command {
+        Commands::FromApi {
+            project_name,
+            project_uuid,
+            project_id,
+            vendor,
+        } => {
+            exporter.check_vendor(vendor.clone())?;
+
+            // Check project existence
+
+            if project_name.is_none() && project_id.is_none() && project_uuid.is_none() {
+                return Err(anyhow!(
+                    "You have to set either project-name or project-id or project-uuid."
+                ));
+            }
+
+            let mut project_uuid: Option<String> = None;
+            if let Some(project_name) = project_name {
+                project_uuid = get_project_uuid(ProjectInfo::Name(project_name));
+            } else if let Some(project_id) = project_id {
+                project_uuid = get_project_uuid(ProjectInfo::Id(project_id));
+            } else if let Some(uuid) = project_uuid {
+                project_uuid = get_project_uuid(ProjectInfo::Uuid(uuid));
+            }
+
+            if let Some(project_uuid) = project_uuid {
+                println!("Using project {project_uuid}\n");
+                exporter.export(Source::Api { project_uuid }, &vendor.unwrap(), cli.output)?;
+            } else {
+                return Err(anyhow!("Project not found"));
+            }
         }
 
-        return Ok(());
-    }
+        Commands::FromFile {
+            recursive,
+            vendor,
+            source,
+        } => {
+            exporter.check_vendor(vendor.clone())?;
 
-    if cli.vendor.is_none() {
-        return Err(anyhow!(
-            "You have to provider a provider to use. Use -v or --vendor argument"
-        ));
-    }
-
-    let vendor = cli.vendor.unwrap();
-    if !exporter.support(&vendor) {
-        return Err(anyhow!("No exporter implemented for provider `{vendor}`\n Use `vendors` subcommand to list implemented providers."));
-    }
-
-    if let Some(Commands::Transpile { recursive, source }) = cli.command {
-        if recursive {
-            exporter.transpile_folder(&source, &vendor)?;
-        } else {
-            exporter.export(Source::File(source), &vendor, cli.output)?;
+            let vendor = vendor.unwrap();
+            if recursive {
+                exporter.transpile_folder(&source, &vendor)?;
+            } else {
+                exporter.export(Source::File(source), &vendor, cli.output)?;
+            }
         }
 
-        return Ok(());
+        Commands::Vendors => {
+            let vendors = exporter.vendors();
+            println!("Impemented providers : ");
+            for vendor in vendors {
+                println!("- {vendor}");
+            }
+
+            return Ok(());
+        }
     }
 
-    // Check project existence
-
-    if cli.project_name.is_none() && cli.project_id.is_none() && cli.project_uuid.is_none() {
-        return Err(anyhow!(
-            "You have to set either project-name or project-id or project-uuid."
-        ));
-    }
-
-    let mut project_uuid: Option<String> = None;
-    if let Some(project_name) = cli.project_name {
-        project_uuid = get_project_uuid(ProjectInfo::Name(project_name));
-    } else if let Some(project_id) = cli.project_id {
-        project_uuid = get_project_uuid(ProjectInfo::Id(project_id));
-    } else if let Some(uuid) = cli.project_uuid {
-        project_uuid = get_project_uuid(ProjectInfo::Uuid(uuid));
-    }
-
-    if let Some(project_uuid) = project_uuid {
-        println!("Using project {project_uuid}\n");
-        exporter.export(Source::Api { project_uuid }, &vendor, cli.output)?;
-
-        Ok(())
-    } else {
-        Err(anyhow!("Project not found"))
-    }
+    Ok(())
 }

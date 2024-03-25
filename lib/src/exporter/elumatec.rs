@@ -171,20 +171,20 @@ impl ElumatecExporter {
 
                     cut.set(
                         "CAngleLH",
-                        Variant::Float(cuts[0]["h"]["value"].as_f64().unwrap() as f32),
+                        Variant::Float(cuts[0][0]["h"]["value"].as_f64().unwrap() as f32),
                     );
                     cut.set(
                         "CAngleRH",
-                        Variant::Float(cuts[1]["h"]["value"].as_f64().unwrap() as f32),
+                        Variant::Float(cuts[1][0]["h"]["value"].as_f64().unwrap() as f32),
                     );
 
                     cut.set(
                         "CAngleLV",
-                        Variant::Float(cuts[0]["v"]["value"].as_f64().unwrap() as f32),
+                        Variant::Float(cuts[0][0]["v"]["value"].as_f64().unwrap() as f32),
                     );
                     cut.set(
                         "CAngleRV",
-                        Variant::Float(cuts[1]["v"]["value"].as_f64().unwrap() as f32),
+                        Variant::Float(cuts[1][0]["v"]["value"].as_f64().unwrap() as f32),
                     );
 
                     cut.set("CRotation", Variant::Float(0.0));
