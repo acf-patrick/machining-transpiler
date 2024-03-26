@@ -2,14 +2,6 @@
 OVendorID  = 0
 OCreator   = "EluCad 2.1"
 OScale     = 1
-OSecSurf   = 5
-OSecIntr   = 2
-OSecExtr   = 1
-OSecClampDistX = 5
-OSecClampDistY = 5
-OSecClampDistZ = 5
-OSecCollDist   = 5
-OClampMode     = 1
 
 :JOB
 cncdriver = "1.1"
@@ -36,57 +28,3 @@ Var16      = 0.000000
 Var17      = 0.000000
 Var18      = 0.000000
 Var19      = 0.000000
-
-:BAR
-BNo           = 1
-BIdentNo      = "L100"
-BDescription  = ""
-BVendor       = ""
-BSeries       = ""
-BColor        = ""
-BSurface      = ""
-BLength       = 6000.000000
-BWidth        = 60.000000
-BHeight       = 100.000000
-BFileDB       = "Profiles.epd"
-BFT0IdentNo  = "40x40"
-BFT0OffsetX  = 0.000000
-BFT0OffsetY  = 40.000000
-BFT0OffsetZ  = 0.000000
-BFT0OffsetY2 = 40.000000
-BFT0TransZS  = 0.000000
-BFT0TransZM  = 0.000000
-BFT0LengthS  = 50.000000
-BFT0WidthS   = 40.000000
-BFT0HeightS  = 60.000000
-BFT0TransXS  = -25.000000
-BFT0TransYS  = 0.000000
-BFT0LengthM  = 50.000000
-BFT0WidthM   = 40.000000
-BFT0HeightM  = 60.000000
-BFT0TransXM  = -25.000000
-BFT0TransYM  = 0.000000
-BColBox0      = -50.018702 0.000000 -60.000000 -100.000000
-BColBox1      = -19.610000 0.000000 -50.018702 -93.400000
-BColBox2      = -9.981332 0.000000 -19.610000 -88.436400
-BColBox3      = 0.000000 0.000000 -9.981332 -99.999996
-// BPolyline0Color     = 0
-// BPolyline0Layer     = 0
-// BPolyline0Count     = 111 // Vertex count
-// BPolyline0Vertex0   = 8.95284E-013 98.5 -0.414214
-// BPolyline0Vertex1   = 1.5 100 0
-// BPolyline0Vertex2   = 58.5 100 -0.414214
-
-:CUT
-CNo          = 1
-CPartNo      = 1
-CStation     = 0
-CComNo       = ""
-CLength      = 2003
-CAngleLH     = 90
-CAngleRH     = 78.4721221923828
-CAngleLV     = 90
-CAngleRV     = 90
-CCount       = 1
-CRotation    = 0
-CSawRotation = 0

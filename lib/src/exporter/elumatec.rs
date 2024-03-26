@@ -146,6 +146,9 @@ impl ElumatecExporter {
     }
 
     fn update_from_file(&mut self, file: &str) -> Result<()> {
+        self.set_attribute("OPTIONS", "OScale", Variant::Int(1));
+        self.set_attribute("OPTIONS", "OCreator", Variant::String("Elucad".to_owned()));
+
         let mut file = File::open(file)?;
 
         let mut contents = String::new();
