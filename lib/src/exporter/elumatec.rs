@@ -376,6 +376,10 @@ impl Default for ElumatecExporter {
 }
 
 impl Export for ElumatecExporter {
+    fn extension(&self) -> String {
+        "ncw".to_owned()
+    }
+
     fn export(&self, source: Source, output_path: Option<String>) -> Result<()> {
         if let Source::File(file) = &source {
             let path = Path::new(file);

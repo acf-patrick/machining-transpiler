@@ -76,14 +76,6 @@ fn main() -> Result<()> {
     dotenv().expect("Unable to load environnement variables, .env file not found");
 
     let cli = Cli::parse();
-    // let cli = Cli {
-    //     command: Commands::FromFile {
-    //         recursive: true,
-    //         vendor: "elumatec".to_owned(),
-    //         source: r#"C:\Users\mihar\projects\machining-transpiler\projects"#.to_owned(),
-    //     },
-    //     output: None,
-    // };
     let exporter = Exporter::new();
 
     match cli.command {
@@ -128,7 +120,7 @@ fn main() -> Result<()> {
             exporter.check_vendor(&vendor)?;
 
             if recursive {
-                exporter.transpile_folder(&source, &vendor)?;
+                exporter.transpile_folder(&source, &vendor, cli.output)?;
             } else {
                 exporter.export(Source::File(source), &vendor, cli.output)?;
             }

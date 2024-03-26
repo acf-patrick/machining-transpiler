@@ -1,4 +1,4 @@
-use std::fs;
+use std::{fs, path::Path};
 
 use anyhow::Result;
 use reqwest::{blocking::Client, Url};
@@ -79,7 +79,40 @@ pub fn find_files_with_extension(folder: &str, extension: &str) -> Result<Vec<St
     Ok(files)
 }
 
-#[cfg(test)]
+pub fn move_files_with_extensions(folder: &str, dest: &str, extension: &str) -> Result<()> {
+    let source = Path::new(folder);
+
+    // create destination folder if doesn't exist
+    fs::create_dir_all(dest)?;
+
+    for entry in fs::read_dir(source)? {
+        let entry = entry?;
+        let file_name = entry.file_name();
+        let file_type = entry.file_type()?;
+
+        let dest = Path::new(dest).join(&file_name);
+
+        if file_type.is_dir() {
+            move_files_with_extensions(
+                entry.path().to_str().unwrap(),
+                dest.to_str().unwrap(),
+                extension,
+            )?;
+        } else {
+            let file_extension = Path::new(&file_name).extension().unwrap();
+            if file_extension == extension {
+                let path = entry.path();
+                fs::copy(path.to_str().unwrap(), &dest)?;
+                fs::remove_file(path)?;
+            }
+        }
+    }
+
+    Ok(())
+}
+
+// #[cfg(test)]
+#[allow(dead_code)]
 mod tests {
     // UUID 0488bf92-813f-4bbd-8e5f-16885d5b75df
     // Name import

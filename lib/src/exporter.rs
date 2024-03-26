@@ -1,7 +1,10 @@
 use anyhow::{anyhow, Result};
-use std::{collections::HashMap, path::Path};
+use std::{collections::HashMap, env::join_paths, fs, path::Path};
 
-use crate::{util::find_files_with_extension, Export, Source};
+use crate::{
+    util::{find_files_with_extension, move_files_with_extensions},
+    Export, Source,
+};
 
 mod elumatec;
 
@@ -42,7 +45,19 @@ impl Exporter {
         None
     }
 
-    pub fn transpile_folder(&self, folder: &str, vendor: &str) -> Result<()> {
+    pub fn transpile_folder(
+        &self,
+        folder: &str,
+        vendor: &str,
+        output_path: Option<String>,
+    ) -> Result<()> {
+        if let Some(output) = &output_path {
+            let path = Path::new(output);
+            if !path.is_dir() {
+                return Err(anyhow!("Output must be a directory"));
+            }
+        }
+
         let path = Path::new(folder);
         if !path.is_dir() {
             return Err(anyhow!("Source must be a directory."));
@@ -65,7 +80,18 @@ impl Exporter {
             )?;
         }
 
+        if let Some(output) = output_path {
+            move_files_with_extensions(folder, &output, &self.get_file_format(vendor).unwrap())?;
+        }
+
         Ok(())
+    }
+
+    fn get_file_format(&self, vendor: &str) -> Option<String> {
+        let record_key = self.get_key(vendor)?;
+        let exporter = self.exporters.get(&record_key)?;
+
+        Some(exporter.extension())
     }
 
     pub fn export(&self, source: Source, vendor: &str, output_path: Option<String>) -> Result<()> {

@@ -10,4 +10,6 @@ pub enum Source {
 
 pub trait Export {
     fn export(&self, source: Source, output_path: Option<String>) -> anyhow::Result<()>;
+
+    fn extension(&self) -> String;
 }
