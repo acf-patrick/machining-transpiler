@@ -52,6 +52,91 @@ impl ElumatecExporter {
         }
     }
 
+    fn update_cuts(&mut self, project_uuid: &str) -> Result<()> {
+        let base_url = std::env::var("BASE_URL")?;
+        let url =
+            Url::parse(&base_url)?.join("/documentData/search/findProjectDataByProjectUuid")?;
+
+        let res = Client::new()
+            .get(url)
+            .query(&[("projectUuid", project_uuid)])
+            .send()?;
+        let data = res.json::<serde_json::Value>()?;
+
+        let structure_views = &data["structureViews"];
+        if structure_views.is_null() {
+            return Err(anyhow!("Unable to update cuts, `structureViews` is null"));
+        }
+
+        let structure_views = structure_views.as_array().unwrap();
+        if structure_views.is_empty() {
+            return Err(anyhow!("Unable to update cuts, no profile found"));
+        }
+
+        let structure_view = &structure_views[0];
+        let profiles = &structure_view["nomenclature"]["profiles"];
+
+        if profiles.is_null() {
+            return Err(anyhow!("Unable to update cuts, `profiles` is null"));
+        }
+
+        let mut cut_tags = vec![];
+
+        let profiles = profiles.as_array().unwrap();
+        for profile in profiles {
+            let length = profile["length"].as_f64().unwrap() as f32;
+
+            let left = profile["extremity1"]["cuts"].as_array().unwrap();
+            let right = profile["extremity2"]["cuts"].as_array().unwrap();
+
+            for i in 0..left.len() {
+                let mut cut = Tag::new("CUT");
+                cut.set("CLength", Variant::Float(length as f32));
+
+                let cut_index = cut_tags.len() + 1;
+                cut.set("CNo", Variant::Int(cut_index as i32));
+
+                let cut_object = &left[i];
+                cut.set(
+                    "CAngleLH",
+                    Variant::Float(cut_object["h"].as_f64().unwrap() as f32),
+                );
+                cut.set(
+                    "CAngleLV",
+                    Variant::Float(cut_object["v"].as_f64().unwrap() as f32),
+                );
+                cut.set(
+                    "CutLossL",
+                    Variant::Float(cut_object["z"].as_f64().unwrap() as f32),
+                );
+
+                let cut_object = &right[i];
+                cut.set(
+                    "CAngleRH",
+                    Variant::Float(cut_object["h"].as_f64().unwrap() as f32),
+                );
+                cut.set(
+                    "CAngleRV",
+                    Variant::Float(cut_object["v"].as_f64().unwrap() as f32),
+                );
+                cut.set(
+                    "CutLossR",
+                    Variant::Float(length + cut_object["z"].as_f64().unwrap() as f32),
+                );
+
+                cut_tags.push(cut);
+            }
+        }
+
+        let cut_count = cut_tags.len() as i32;
+        for tag in &mut cut_tags {
+            tag.set("CCount", Variant::Int(cut_count));
+            self.tags.push(tag.clone());
+        }
+
+        Ok(())
+    }
+
     fn update_macros(&mut self, project_uuid: &str) -> Result<()> {
         let base_url = std::env::var("BASE_URL")?;
         let url =
@@ -140,6 +225,10 @@ impl ElumatecExporter {
             eprintln!("{}", err.to_string());
         }
 
+        if let Err(err) = self.update_cuts(project_uuid) {
+            eprintln!("{}", err.to_string());
+        }
+
         // other substitutions that should be done
 
         Ok(())
@@ -191,7 +280,6 @@ impl ElumatecExporter {
                     );
 
                     cut.set("CRotation", Variant::Float(0.0));
-                    cut.set("CCount", Variant::Int(1));
                     cut.set("CSawRotation", Variant::Float(0.0));
 
                     cut_tags.push(cut);
