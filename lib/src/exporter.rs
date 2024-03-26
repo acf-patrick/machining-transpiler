@@ -63,7 +63,9 @@ impl Exporter {
             return Err(anyhow!("Source must be a directory."));
         }
 
+        let dest_extension = self.get_file_format(vendor).unwrap();
         let files = find_files_with_extension(folder, "json")?;
+
         for file in files {
             let path = std::path::Path::new(&file);
             println!(
@@ -74,14 +76,14 @@ impl Exporter {
             self.export(
                 Source::File(file.clone()),
                 vendor,
-                path.with_extension("ncw")
+                path.with_extension(&dest_extension)
                     .to_str()
                     .map(|path| path.to_owned()),
             )?;
         }
 
         if let Some(output) = output_path {
-            move_files_with_extensions(folder, &output, &self.get_file_format(vendor).unwrap())?;
+            move_files_with_extensions(folder, &output, &dest_extension)?;
         }
 
         Ok(())
