@@ -1,5 +1,5 @@
 use anyhow::{anyhow, Result};
-use std::{collections::HashMap, env::join_paths, fs, path::Path};
+use std::{collections::HashMap, path::Path};
 
 use crate::{
     util::{find_files_with_extension, move_files_with_extensions},

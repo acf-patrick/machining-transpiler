@@ -113,6 +113,7 @@ pub fn move_files_with_extensions(folder: &str, dest: &str, extension: &str) -> 
 
 // #[cfg(test)]
 #[allow(dead_code)]
+#[allow(unused_imports)]
 mod tests {
     // UUID 0488bf92-813f-4bbd-8e5f-16885d5b75df
     // Name import
