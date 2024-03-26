@@ -251,38 +251,44 @@ impl ElumatecExporter {
         for article in articles {
             match article["type"].as_str().unwrap() {
                 "profile" => {
-                    let mut cut = Tag::new("CUT");
-
-                    let cut_index = cut_tags.len() + 1;
-                    cut.set("CNo", Variant::Int(cut_index as i32));
-
                     let length = article["length"]["value"].as_f64().unwrap();
-                    cut.set("CLength", Variant::Float(length as f32));
 
                     let cuts = article["cuts"].as_array().unwrap();
+                    let left = &cuts[0].as_array().unwrap();
+                    let right = &cuts[1].as_array().unwrap();
 
-                    cut.set(
-                        "CAngleLH",
-                        Variant::Float(cuts[0][0]["h"]["value"].as_f64().unwrap() as f32),
-                    );
-                    cut.set(
-                        "CAngleRH",
-                        Variant::Float(cuts[1][0]["h"]["value"].as_f64().unwrap() as f32),
-                    );
+                    for i in 0..left.len() {
+                        let mut cut = Tag::new("CUT");
+                        cut.set("CLength", Variant::Float(length as f32));
 
-                    cut.set(
-                        "CAngleLV",
-                        Variant::Float(cuts[0][0]["v"]["value"].as_f64().unwrap() as f32),
-                    );
-                    cut.set(
-                        "CAngleRV",
-                        Variant::Float(cuts[1][0]["v"]["value"].as_f64().unwrap() as f32),
-                    );
+                        let cut_index = cut_tags.len() + 1;
+                        cut.set("CNo", Variant::Int(cut_index as i32));
 
-                    cut.set("CRotation", Variant::Float(0.0));
-                    cut.set("CSawRotation", Variant::Float(0.0));
+                        let angles = &left[i];
+                        cut.set(
+                            "CAngleLH",
+                            Variant::Float(angles["h"]["value"].as_f64().unwrap() as f32),
+                        );
+                        cut.set(
+                            "CAngleLV",
+                            Variant::Float(angles["v"]["value"].as_f64().unwrap() as f32),
+                        );
 
-                    cut_tags.push(cut);
+                        let angles = &right[i];
+                        cut.set(
+                            "CAngleRH",
+                            Variant::Float(angles["h"]["value"].as_f64().unwrap() as f32),
+                        );
+                        cut.set(
+                            "CAngleRV",
+                            Variant::Float(angles["v"]["value"].as_f64().unwrap() as f32),
+                        );
+
+                        cut.set("CRotation", Variant::Float(0.0));
+                        cut.set("CSawRotation", Variant::Float(0.0));
+
+                        cut_tags.push(cut);
+                    }
                 }
 
                 _ => {
