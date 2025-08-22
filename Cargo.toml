@@ -1,3 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["machining-transpiler", "lib"]
+members = ["cli", "lib"]
+
+[workspace.dependencies]
+anyhow = "1.0"

@@ -1,14 +1,15 @@
-pub fn add(left: usize, right: usize) -> usize {
-    left + right
+mod exporter;
+pub mod util;
+
+pub use exporter::Exporter;
+
+pub enum Source {
+    Api { project_uuid: String },
+    File(String),
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
+pub trait Export {
+    fn export(&self, source: Source, output_path: Option<String>) -> anyhow::Result<()>;
 
-    #[test]
-    fn it_works() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
-    }
+    fn extension(&self) -> String;
 }
